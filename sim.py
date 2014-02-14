@@ -1,4 +1,7 @@
 import pdb
+import os
+
+'''All predictions implemented'''
 
 def sim(pred, file='gcc_branch.out', **kwargs):
     '''Simulate a branch predictor [pred] on trace output contained in [file].
@@ -100,16 +103,59 @@ def two_level_ad_pred(branch, n=1):
 
 
 def main():
-    print "If the gcc and mcf stack traces are in your current directory, skip"
-    gcc = raw_input('relative/absolute filepath for the gcc stack trace:\n')
-    mcf = raw_input('relative/absolute filepath for the mcf stack trace:\n')
-    if gcc == '':
-        gcc = 'gcc_branch.out'
-    if mcf == '':
-        mcf = 'mcf_branch.out'
-    print "Predictor\tgcc miss %\tmcf miss %"
-    print "Static (Take)\t %.6f\t%.6f" % (sim(static_pred_take, file=gcc),
-                                                    sim(static_pred_take, file=mcf))
+    # If gcc and mcf stack traces are not in your current directory,
+    # we ask for their location
+    gcc = 'gcc_branch.out'
+    mcf = 'mcf_branch.out'
+    if not os.path.exists(gcc):
+        gcc = raw_input('relative/absolute filepath\
+                        for the gcc stack trace:\n')
+    if not os.path.exists(mcf):
+        mcf = raw_input('relative/absolute filepath\
+                        for the mcf stack trace:\n')
+    if (not os.path.exists(gcc) or not os.path.exists(mcf)):
+        raise IOError("File(s) not found.")
+
+    print "|Predictor|\t\t|gcc miss %|\t|mcf miss %|"
+
+    st_gcc = sim(static_pred_take, file=gcc)
+    st_mcf = sim(static_pred_take, file=mcf)
+    print "Static(Take)\t\t %.6f\t%.6f" % (st_gcc, st_mcf)
+
+    sn_gcc = sim(static_pred_notake, file=gcc)
+    sn_mcf = sim(static_pred_notake, file=mcf)
+    print "Static(Not)\t\t %.6f\t%.6f" % (sn_gcc, sn_mcf)
+
+    sp_gcc = sim(profile_pred, file=gcc)
+    sp_mcf = sim(profile_pred, file=mcf)
+    print "Static(Profile)\t\t %.6f\t%.6f" % (sp_gcc, sp_mcf)
+
+    tbnh_gcc = sim(two_bit_no_history_pred, file=gcc)
+    tbnh_mcf = sim(two_bit_no_history_pred, file=mcf)
+    print "2-bit No History\t %.6f\t%.6f" % (tbnh_gcc, tbnh_mcf)
+
+    tlone_gcc = sim(two_level_ad_pred, file=gcc, n=1)
+    tlone_mcf = sim(two_level_ad_pred, file=mcf, n=1)
+    print "2 lvl adaptive(depth 1)\t %.6f\t%.6f" % (tlone_gcc, tlone_mcf)
+
+    tltwo_gcc = sim(two_level_ad_pred, file=gcc, n=2)
+    tltwo_mcf = sim(two_level_ad_pred, file=mcf, n=2)
+    print "2 lvl adaptive(depth 2)\t %.6f\t%.6f" % (tltwo_gcc, tltwo_mcf)
+
+    tlthree_gcc = sim(two_level_ad_pred, file=gcc, n=3)
+    tlthree_mcf = sim(two_level_ad_pred, file=mcf, n=3)
+    print "2 lvl adaptive(depth 3)\t %.6f\t%.6f" % (tlthree_gcc, tlthree_mcf)
+
+    tlfour_gcc = sim(two_level_ad_pred, file=gcc, n=4)
+    tlfour_mcf = sim(two_level_ad_pred, file=mcf, n=4)
+    print "2 lvl adaptive(depth 4)\t %.6f\t%.6f" % (tlfour_gcc, tlfour_mcf)
+
+    print ''
+    best_gcc = min([sn_gcc, sp_gcc, tbnh_gcc, tlone_gcc, tltwo_gcc,
+                   tlthree_gcc, tlfour_gcc])
+    best_mcf = min([sn_mcf, sp_mcf, tbnh_mcf, tlone_mcf, tltwo_mcf,
+                   tlthree_mcf, tlfour_mcf])
+    print "Best:\t\t\t%.6f\t%.6f" % (best_gcc, best_mcf)
 
 if __name__ == '__main__':
     main()
